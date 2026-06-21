@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>足球猜猜猜 · 2026世界杯</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        #app {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.10);
+            padding: 24px 28px 32px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a2639;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #e9edf2;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #4a5a6e;
+            margin-left: auto;
+        }
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .status-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-size: 16px;
+        }
+        .status-item .label { color: #64748b; }
+        .status-item .value { font-weight: 700; font-size: 20px; color: #0b1e33; }
+        .value.funds { color: #2b7a4b; }
+        .rule-tip {
+            background: #fef9e7;
+            border: 1px solid #fdebd0;
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            color: #7d6608;
+            font-weight: 500;
+        }
+        .round-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin: 10px 0 16px;
+            color: #1e293b;
+        }
+        .match-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .match-card {
+            background: #ffffff;
+            border: 3px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: 0.15s;
+            position: relative;
+            cursor: pointer;
+        }
+        .match-card:hover { border-color: #b9c7da; }
+        .match-card.selected {
+            border-color: #f39c12;
+            border-width: 4px;
+            background: #fffbee;
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.25);
+        }
+        .match-card.betting { border-color: #2b7a4b; background: #f0faf4; }
+        .match-card.settled { border-color: #95a5a6; background: #f8f9fa; opacity: 0.8; }
+        .match-card .match-teams {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        .match-card .team-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .match-card .team-flag { font-size: 22px; }
+        .match-card .team-strength {
+            font-size: 13px;
+            font-weight: 400;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 0 8px;
+            border-radius: 12px;
+        }
+        .match-card .home-away-tag {
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            padding: 1px 8px;
+            border-radius: 12px;
+            background: #2c3e50;
+        }
+        .match-card .home-away-tag.away { background: #7f8c8d; }
+        .match-card .vs { color: #94a3b8; font-weight: 400; margin: 0 4px; }
+        .match-card .match-detail {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 28px;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #334155;
+        }
+        .match-card .match-detail .stat { display: flex; gap: 6px; }
+        .match-card .match-detail .stat span:first-child { color: #64748b; }
+        .match-card .match-odds {
+            margin-top: 8px;
+            display: flex;
+            gap: 18px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a2639;
+        }
+        .match-card .match-odds span { background: #eef2f7; padding: 2px 12px; border-radius: 30px; }
+        .match-card .match-actions {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px dashed #dce2ec;
+            padding-top: 10px;
+        }
+        .match-card .match-actions .ai-btn {
+            background: #8e44ad;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .match-card .match-actions .ai-btn:hover { background: #6c3483; transform: scale(0.95); }
+        .match-card .match-actions .ai-btn:disabled { opacity: 0.4; pointer-events: none; }
+        .match-card .bet-status {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2b7a4b;
+        }
+        .match-card .bet-status.lost { color: #c0392b; }
+        .match-card .bet-status.waiting { color: #f39c12; }
+        .match-card .ai-result {
+            margin-top: 8px;
+            background: #e8f0fe;
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-size: 14px;
+            border-left: 4px solid #8e44ad;
+            display: none;
+        }
+        .match-card .ai-result.show { display: block; }
+
+        .bet-panel {
+            margin: 16px 0 20px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            border: 1px solid #e2e8f0;
+        }
+        .bet-panel select, .bet-panel input {
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 14px;
+        }
+        .bet-panel input[type="number"] { width: 80px; }
+        .bet-panel .odds-preview {
+            font-weight: 700;
+            color: #1a2639;
+            background: #e9edf2;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 16px;
+            min-width: 80px;
+            text-align: center;
+        }
+        .btn {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .btn:hover { background: #0f1a2b; transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; pointer-events: none; }
+        .btn-primary { background: #2b7a4b; }
+        .btn-primary:hover { background: #1f5f3a; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #1e8449; }
+        .btn-warning { background: #f39c12; }
+        .btn-warning:hover { background: #d68910; }
+        .btn-danger { background: #c0392b; }
+        .btn-danger:hover { background: #a93226; }
+        .result-area {
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 16px;
+            background: #f1f5f9;
+            border-left: 6px solid #2b7a4b;
+        }
+        .result-area .result-item { margin: 4px 0; }
+        .leaderboard {
+            margin-top: 28px;
+            border-top: 2px solid #e9edf2;
+            padding-top: 20px;
+        }
+        .leaderboard h3 { font-size: 20px; margin-bottom: 12px; }
+        .leaderboard ol { list-style: none; padding: 0; }
+        .leaderboard li {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-bottom: 1px solid #ecf0f5;
+        }
+        .leaderboard li:first-child { font-weight: 700; background: #fef9e7; }
+        .game-over-msg {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .mt-16 { margin-top: 16px; }
+        .mb-8 { margin-bottom: 8px; }
+        .text-sm { font-size: 14px; color: #475569; }
+        .text-center { text-align: center; }
+        .hidden { display: none; }
+        .ml-auto { margin-left: auto; }
+        @media (max-width: 640px) {
+            #app { padding: 16px; }
+            .match-card .match-teams { font-size: 15px; }
+            .bet-panel { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>⚽ 足球猜猜猜 <small>2026 世界杯 · 竞猜模拟</small></h1>
+
+    <div class="status-bar">
+        <div class="status-item"><span class="label">💰 资金</span><span class="value funds" id="balanceDisplay">1000</span></div>
+        <div class="status-item"><span class="label">🏆 轮次</span><span class="value" id="roundDisplay">1 / 5</span></div>
+        <div class="status-item"><span class="label">👥 存活</span><span class="value" id="survivorCount">32</span></div>
+        <div class="status-item"><span class="label">📋 本轮已下注</span><span class="value" id="betCountDisplay">0 / 4</span></div>
+    </div>
+
+    <div class="rule-tip">
+        📢 每轮最多下注 <strong>4</strong> 场比赛，下注后点击「<strong>进入下一轮</strong>」统一开奖结算！
+        <span style="margin-left:20px;">💡 点击卡片选中，右侧「AI模拟」可预测概率（消耗200资金）</span>
+    </div>
+
+    <div id="gameArea">
+        <div class="round-title" id="roundTitle">🏟️ 第一轮 · 32强</div>
+
+        <!-- 全局下注面板 -->
+        <div class="bet-panel" id="betPanel">
+            <label>竞猜类型:
+                <select id="betType">
+                    <option value="win">胜平负</option>
+                    <option value="score">比分</option>
+                    <option value="total">大小球</option>
+                </select>
+            </label>
+            <label>金额: <input type="number" id="betAmount" value="20" min="10" max="500"></label>
+            <span id="winOptions">
+                <select id="betOptionWin">
+                    <option value="home">主胜</option>
+                    <option value="draw">平局</option>
+                    <option value="away">客胜</option>
+                </select>
+            </span>
+            <span id="scoreOptions" style="display:none;">
+                <input type="number" id="scoreHome" value="1" min="0" max="8" style="width:50px;"> :
+                <input type="number" id="scoreAway" value="0" min="0" max="8" style="width:50px;">
+            </span>
+            <span id="totalOptions" style="display:none;">
+                <label><input type="radio" name="total" value="over" checked> 大球(>2.5)</label>
+                <label><input type="radio" name="total" value="under"> 小球(<2.5)</label>
+            </span>
+            <span class="odds-preview" id="oddsPreview">赔率: --</span>
+            <button class="btn btn-primary" id="placeBetBtn">下注</button>
+            <span class="text-sm" id="betStatus">请点击卡片选择比赛</span>
+        </div>
+
+        <!-- 比赛卡片容器 -->
+        <div id="matchContainer" class="match-grid"></div>
+
+        <div class="flex-row mt-16">
+            <button class="btn btn-primary" id="nextRoundBtn">▶ 进入下一轮</button>
+            <button class="btn btn-success" id="workBtn">💼 打工（+100资金）</button>
+            <button class="btn" id="resetBtn">🔄 重新开始</button>
+            <span class="text-sm" id="infoMsg"></span>
+        </div>
+
+        <div id="resultArea" class="result-area hidden">
+            <div id="resultContent"></div>
+        </div>
+
+        <div id="gameOverArea" class="hidden">
+            <div class="game-over-msg">
+                🏁 决赛结束！<br>
+                <span id="finalBalance" style="font-size:24px;font-weight:700;">0</span> 资金
+            </div>
+            <div class="text-center">
+                <button class="btn" id="showLeaderboardBtn">📊 查看排行榜</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="leaderboard" id="leaderboardArea">
+        <h3>🏅 排行榜 (本地)</h3>
+        <div class="flex-row mb-8">
+            <input type="text" id="playerNameInput" placeholder="你的昵称" style="padding:6px 12px;border-radius:20px;border:1px solid #cbd5e1;flex:1;">
+            <button class="btn" id="saveScoreBtn" style="background:#3b5d8c;">保存成绩</button>
+        </div>
+        <ol id="leaderboardList">
+            <li style="color:#94a3b8;justify-content:center;">暂无记录，快来竞猜吧！</li>
+        </ol>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // 1. 球队数据
+    // ============================================================
+    const TEAMS_DATA = [
+        { name: '法国', flag: '🇫🇷', attack: 98, defense: 94, keeper: 95, overall: 96, tier: 'S' },
+        { name: '阿根廷', flag: '🇦🇷', attack: 96, defense: 93, keeper: 97, overall: 95, tier: 'S' },
+        { name: '英格兰', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', attack: 95, defense: 94, keeper: 92, overall: 94, tier: 'S' },
+        { name: '西班牙', flag: '🇪🇸', attack: 97, defense: 92, keeper: 90, overall: 94, tier: 'S' },
+        { name: '巴西', flag: '🇧🇷', attack: 96, defense: 89, keeper: 90, overall: 92, tier: 'A' },
+        { name: '德国', flag: '🇩🇪', attack: 90, defense: 93, keeper: 92, overall: 91, tier: 'A' },
+        { name: '葡萄牙', flag: '🇵🇹', attack: 92, defense: 88, keeper: 91, overall: 90, tier: 'A' },
+        { name: '荷兰', flag: '🇳🇱', attack: 88, defense: 91, keeper: 89, overall: 89, tier: 'A' },
+        { name: '克罗地亚', flag: '🇭🇷', attack: 85, defense: 89, keeper: 88, overall: 87, tier: 'A' },
+        { name: '比利时', flag: '🇧🇪', attack: 88, defense: 84, keeper: 87, overall: 86, tier: 'B' },
+        { name: '挪威', flag: '🇳🇴', attack: 90, defense: 80, keeper: 83, overall: 85, tier: 'B' },
+        { name: '摩洛哥', flag: '🇲🇦', attack: 82, defense: 86, keeper: 85, overall: 84, tier: 'B' },
+        { name: '瑞士', flag: '🇨🇭', attack: 80, defense: 86, keeper: 84, overall: 83, tier: 'B' },
+        { name: '奥地利', flag: '🇦🇹', attack: 83, defense: 82, keeper: 80, overall: 82, tier: 'B' },
+        { name: '哥伦比亚', flag: '🇨🇴', attack: 84, defense: 79, keeper: 80, overall: 81, tier: 'B' },
+        { name: '乌拉圭', flag: '🇺🇾', attack: 82, defense: 79, keeper: 80, overall: 80, tier: 'B' },
+        { name: '美国', flag: '🇺🇸', attack: 80, defense: 78, keeper: 80, overall: 79, tier: 'C' },
+        { name: '墨西哥', flag: '🇲🇽', attack: 79, defense: 77, keeper: 79, overall: 78, tier: 'C' },
+        { name: '塞内加尔', flag: '🇸🇳', attack: 80, defense: 76, keeper: 77, overall: 78, tier: 'C' },
+        { name: '苏格兰', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', attack: 78, defense: 77, keeper: 76, overall: 77, tier: 'C' },
+        { name: '加拿大', flag: '🇨🇦', attack: 77, defense: 75, keeper: 77, overall: 76, tier: 'C' },
+        { name: '埃及', flag: '🇪🇬', attack: 76, defense: 74, keeper: 76, overall: 75, tier: 'C' },
+        { name: '阿尔及利亚', flag: '🇩🇿', attack: 75, defense: 73, keeper: 74, overall: 74, tier: 'C' },
+        { name: '厄瓜多尔', flag: '🇪🇨', attack: 74, defense: 72, keeper: 73, overall: 73, tier: 'C' },
+        { name: '巴拉圭', flag: '🇵🇾', attack: 71, defense: 74, keeper: 72, overall: 72, tier: 'C' },
+        { name: '加纳', flag: '🇬🇭', attack: 73, defense: 70, keeper: 70, overall: 71, tier: 'D' },
+        { name: '澳大利亚', flag: '🇦🇺', attack: 71, defense: 70, keeper: 69, overall: 70, tier: 'D' },
+        { name: '日本', flag: '🇯🇵', attack: 70, defense: 68, keeper: 70, overall: 69, tier: 'D' },
+        { name: '韩国', flag: '🇰🇷', attack: 69, defense: 67, keeper: 69, overall: 68, tier: 'D' },
+        { name: '南非', flag: '🇿🇦', attack: 65, defense: 67, keeper: 66, overall: 66, tier: 'D' },
+        { name: '佛得角', flag: '🇨🇻', attack: 63, defense: 65, keeper: 64, overall: 64, tier: 'D' },
+        { name: '约旦', flag: '🇯🇴', attack: 61, defense: 63, keeper: 62, overall: 62, tier: 'D' }
+    ];
+
+    // ============================================================
+    // 2. 游戏状态
+    // ============================================================
+    let state = {
+        balance: 1000,          // 资金
+        round: 1,
+        maxRounds: 5,
+        aliveTeams: [],
+        matches: [],            // { home, away, result: null, settled: false, index }
+        bets: [],               // { matchIdx, betType, betOption, odds, amount }
+        gameOver: false,
+        selectedMatchIdx: -1,
+    };
+
+    // ============================================================
+    // 3. 工具函数
+    // ============================================================
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function poissonRandom(lambda) {
+        if (lambda < 0) lambda = 0;
+        let L = Math.exp(-lambda);
+        let k = 0;
+        let p = 1;
+        do {
+            k++;
+            p *= Math.random();
+        } while (p > L);
+        return k - 1;
+    }
+
+    function simulateMatch(teamA, teamB) {
+        const diff = teamA.overall - teamB.overall;
+        let homeWinProb = 0.5 + diff * 0.004;
+        homeWinProb = Math.min(Math.max(homeWinProb, 0.05), 0.95);
+        const drawProb = 0.18 + Math.random() * 0.04;
+        const rand = Math.random();
+        let winner = 'draw';
+        if (rand < homeWinProb) winner = 'home';
+        else if (rand < homeWinProb + drawProb) winner = 'draw';
+        else winner = 'away';
+
+        let homeExpected = 1.2 + (teamA.attack/100 - teamB.defense/100) * 1.8 + (Math.random()-0.5)*0.4;
+        let awayExpected = 1.0 + (teamB.attack/100 - teamA.defense/100) * 1.8 + (Math.random()-0.5)*0.4;
+        homeExpected *= (1 - (teamB.keeper/100)*0.15);
+        awayExpected *= (1 - (teamA.keeper/100)*0.15);
+        homeExpected = Math.max(homeExpected, 0.2);
+        awayExpected = Math.max(awayExpected, 0.2);
+
+        let homeScore = poissonRandom(homeExpected);
+        let awayScore = poissonRandom(awayExpected);
+
+        if (winner === 'home' && homeScore <= awayScore) {
+            homeScore = awayScore + Math.floor(Math.random()*2) + 1;
+            awayScore = Math.max(0, awayScore - Math.floor(Math.random()*2));
+        } else if (winner === 'away' && awayScore <= homeScore) {
+            awayScore = homeScore + Math.floor(Math.random()*2) + 1;
+            homeScore = Math.max(0, homeScore - Math.floor(Math.random()*2));
+        } else if (winner === 'draw' && homeScore !== awayScore) {
+            const avg = Math.floor((homeScore+awayScore)/2);
+            homeScore = avg; awayScore = avg;
+        }
+        homeScore = Math.min(homeScore, 8);
+        awayScore = Math.min(awayScore, 8);
+        return { homeScore, awayScore, winner };
+    }
+
+    function computeOdds(teamA, teamB) {
+        const diff = teamA.overall - teamB.overall;
+        let homeWin = 0.5 + diff * 0.004;
+        homeWin = Math.min(Math.max(homeWin, 0.05), 0.95);
+        let draw = 0.18 + Math.random() * 0.04;
+        let awayWin = 1 - homeWin - draw;
+        if (awayWin < 0.02) { awayWin = 0.02; draw = 1 - homeWin - awayWin; }
+        const margin = 0.90;
+        return { home: margin/homeWin, draw: margin/draw, away: margin/awayWin };
+    }
+
+    function computeScoreOdds(teamA, teamB, h, a) {
+        const base = 6.0 + Math.random() * 4;
+        const diff = Math.abs(teamA.overall - teamB.overall);
+        let factor = 1 + diff * 0.01;
+        if (h === a) factor *= 1.2;
+        if (h > 2 || a > 2) factor *= 1.3;
+        return base * factor;
+    }
+
+    function computeTotalOdds(teamA, teamB) {
+        const avg = (teamA.overall + teamB.overall) / 2;
+        let overProb = 0.45 + (avg - 70) * 0.008;
+        overProb = Math.min(Math.max(overProb, 0.25), 0.75);
+        const margin = 0.90;
+        return { over: margin/overProb, under: margin/(1-overProb) };
+    }
+
+    // ============================================================
+    // 4. AI 预测（返回概率对象）
+    // ============================================================
+    function getAIPrediction(teamA, teamB) {
+        // 基于实力的胜平负概率（不含随机扰动）
+        const diff = teamA.overall - teamB.overall;
+        let homeWin = 0.5 + diff * 0.004;
+        homeWin = Math.min(Math.max(homeWin, 0.05), 0.95);
+        let draw = 0.18 + Math.random() * 0.02; // 稳定一点
+        let awayWin = 1 - homeWin - draw;
+        if (awayWin < 0.02) { awayWin = 0.02; draw = 1 - homeWin - awayWin; }
+
+        // 期望进球
+        let homeExpected = 1.2 + (teamA.attack/100 - teamB.defense/100) * 1.8;
+        let awayExpected = 1.0 + (teamB.attack/100 - teamA.defense/100) * 1.8;
+        homeExpected *= (1 - (teamB.keeper/100)*0.15);
+        awayExpected *= (1 - (teamA.keeper/100)*0.15);
+        homeExpected = Math.max(homeExpected, 0.3);
+        awayExpected = Math.max(awayExpected, 0.3);
+
+        // 比分概率（取最可能的几个）
+        const mostLikely = [];
+        for (let h = 0; h <= 4; h++) {
+            for (let a = 0; a <= 4; a++) {
+                // 简化概率计算（泊松近似）
+                const prob = (Math.pow(homeExpected, h) * Math.exp(-homeExpected) / factorial(h)) *
+                             (Math.pow(awayExpected, a) * Math.exp(-awayExpected) / factorial(a));
+                mostLikely.push({ h, a, prob });
+            }
+        }
+        mostLikely.sort((x, y) => y.prob - x.prob);
+        const topScores = mostLikely.slice(0, 3).map(s => `${s.h}:${s.a} (${(s.prob*100).toFixed(1)}%)`);
+
+        // 大小球概率
+        let totalProb = 0;
+        for (let h = 0; h <= 5; h++) {
+            for (let a = 0; a <= 5; a++) {
+                const prob = (Math.pow(homeExpected, h) * Math.exp(-homeExpected) / factorial(h)) *
+                             (Math.pow(awayExpected, a) * Math.exp(-awayExpected) / factorial(a));
+                if (h + a > 2.5) totalProb += prob;
+            }
+        }
+        totalProb = Math.min(totalProb, 0.99);
+
+        return {
+            homeWin: homeWin,
+            draw: draw,
+            awayWin: awayWin,
+            over: totalProb,
+            under: 1 - totalProb,
+            topScores: topScores
+        };
+    }
+
+    function factorial(n) {
+        if (n === 0) return 1;
+        let r = 1;
+        for (let i = 2; i <= n; i++) r *= i;
+        return r;
+    }
+
+    // ============================================================
+    // 5. 核心逻辑
+    // ============================================================
+    function initGame() {
+        state.balance = 1000;
+        state.round = 1;
+        state.gameOver = false;
+        state.selectedMatchIdx = -1;
+        state.bets = [];
+        state.aliveTeams = TEAMS_DATA.map(t => ({ ...t }));
+        shuffle(state.aliveTeams);
+        generateRound();
+        updateUI();
+        document.getElementById('resultArea').classList.add('hidden');
+        document.getElementById('gameOverArea').classList.add('hidden');
+        document.getElementById('infoMsg').textContent = '点击比赛卡片选择，然后下注';
+        updateOddsPreview();
+    }
+
+    function generateRound() {
+        const teams = state.aliveTeams;
+        if (teams.length < 2) { endGame(); return; }
+        shuffle(teams);
+        const matches = [];
+        for (let i = 0; i < teams.length - 1; i += 2) {
+            matches.push({
+                home: teams[i],
+                away: teams[i+1],
+                result: null,
+                settled: false,
+                aiResult: null,   // 存储AI预测结果
+            });
+        }
+        state.matches = matches;
+        state.bets = [];
+        state.selectedMatchIdx = (matches.length > 0) ? 0 : -1;
+        document.getElementById('infoMsg').textContent = `第 ${state.round} 轮开始，请下注`;
+        updateOddsPreview();
+    }
+
+    function getSelectedMatch() {
+        if (state.selectedMatchIdx < 0 || state.selectedMatchIdx >= state.matches.length) return null;
+        return state.matches[state.selectedMatchIdx];
+    }
+
+    function isMatchBetOn(matchIdx) {
+        return state.bets.some(b => b.matchIdx === matchIdx);
+    }
+
+    function placeBet() {
+        if (state.gameOver) { alert('游戏已结束'); return; }
+        if (state.bets.length >= 4) { alert('本轮已下注4场，已达上限！'); return; }
+
+        const match = getSelectedMatch();
+        if (!match) { alert('请先点击一张比赛卡片选择对阵'); return; }
+        if (match.settled) { alert('该场比赛已结束，无法下注'); return; }
+        const idx = state.selectedMatchIdx;
+        if (isMatchBetOn(idx)) { alert('本场比赛已下注，不能重复下注'); return; }
+
+        const amount = parseInt(document.getElementById('betAmount').value);
+        if (isNaN(amount) || amount < 10) { alert('下注金额至少为10'); return; }
+        if (amount > 500) { alert('单注最大500'); return; }
+        if (amount > state.balance) { alert('资金不足'); return; }
+
+        const betType = document.getElementById('betType').value;
+        let betOption = '';
+        let odds = 0;
+
+        if (betType === 'win') {
+            const option = document.getElementById('betOptionWin').value;
+            betOption = option;
+            const oddsObj = computeOdds(match.home, match.away);
+            odds = (option === 'home') ? oddsObj.home : (option === 'draw' ? oddsObj.draw : oddsObj.away);
+        } else if (betType === 'score') {
+            const h = parseInt(document.getElementById('scoreHome').value) || 0;
+            const a = parseInt(document.getElementById('scoreAway').value) || 0;
+            if (h < 0 || a < 0 || h > 8 || a > 8) { alert('比分范围0~8'); return; }
+            betOption = `${h}:${a}`;
+            odds = computeScoreOdds(match.home, match.away, h, a);
+        } else if (betType === 'total') {
+            const radios = document.querySelectorAll('input[name="total"]');
+            let over = true;
+            for (let r of radios) if (r.checked) over = (r.value === 'over');
+            betOption = over ? '大球' : '小球';
+            const totalOdds = computeTotalOdds(match.home, match.away);
+            odds = over ? totalOdds.over : totalOdds.under;
+        } else { alert('未知竞猜类型'); return; }
+
+        state.balance -= amount;
+        state.bets.push({ matchIdx: idx, betType, betOption, odds, amount });
+
+        document.getElementById('infoMsg').textContent = `下注成功！已下注 ${state.bets.length}/4 场`;
+        updateUI();
+        updateOddsPreview();
+    }
+
+    // AI模拟
+    function useAI(matchIdx) {
+        if (state.gameOver) return;
+        const match = state.matches[matchIdx];
+        if (!match) return;
+        if (match.settled) { alert('比赛已结束'); return; }
+        if (state.balance < 200) { alert('资金不足200，无法使用AI模拟'); return; }
+        if (!confirm(`使用AI模拟预测本场比赛，消耗200资金，确认？`)) return;
+
+        state.balance -= 200;
+        // 计算预测
+        const pred = getAIPrediction(match.home, match.away);
+        match.aiResult = pred;
+        updateUI();
+        document.getElementById('infoMsg').textContent = `AI模拟完成，查看卡片下方预测结果`;
+    }
+
+    // 打工：跳过本轮，+100资金
+    function doWork() {
+        if (state.gameOver) return;
+        if (state.bets.length > 0) {
+            alert('本轮已下注，无法打工。请先结算或放弃下注。');
+            return;
+        }
+        if (!confirm('确认打工跳过本轮？你将获得100资金，本轮比赛将自动模拟晋级。')) return;
+        // 模拟所有比赛，晋级
+        state.matches.forEach(m => {
+            if (!m.settled) {
+                m.result = simulateMatch(m.home, m.away);
+                m.settled = true;
+            }
+        });
+        advanceRound();
+        state.balance += 100;
+        if (state.aliveTeams.length <= 1 || state.round >= state.maxRounds) {
+            endGame();
+            return;
+        }
+        state.round++;
+        generateRound();
+        document.getElementById('resultArea').classList.add('hidden');
+        updateUI();
+        document.getElementById('infoMsg').textContent = `打工成功，资金+100，进入第 ${state.round} 轮`;
+    }
+
+    // 结算本轮所有比赛（进入下一轮时调用）
+    function settleRound() {
+        if (state.gameOver) return;
+        if (state.matches.length === 0) return;
+
+        // 模拟所有未结算
+        state.matches.forEach(m => {
+            if (!m.settled) {
+                m.result = simulateMatch(m.home, m.away);
+                m.settled = true;
+            }
+        });
+
+        // 结算投注
+        let resultsHTML = '';
+        if (state.bets.length === 0) {
+            resultsHTML = '<div>本轮无投注</div>';
+        } else {
+            state.bets.forEach(bet => {
+                const match = state.matches[bet.matchIdx];
+                const res = match.result;
+                let win = false;
+                let winAmount = 0;
+
+                if (bet.betType === 'win') {
+                    let winner = '';
+                    if (res.winner === 'home') winner = 'home';
+                    else if (res.winner === 'away') winner = 'away';
+                    else winner = 'draw';
+                    if (bet.betOption === winner) win = true;
+                } else if (bet.betType === 'score') {
+                    const parts = bet.betOption.split(':');
+                    if (res.homeScore === parseInt(parts[0]) && res.awayScore === parseInt(parts[1])) win = true;
+                } else if (bet.betType === 'total') {
+                    const total = res.homeScore + res.awayScore;
+                    const over = total > 2.5;
+                    if ((bet.betOption === '大球' && over) || (bet.betOption === '小球' && !over)) win = true;
+                }
+
+                if (win) {
+                    winAmount = Math.round(bet.amount * bet.odds);
+                    state.balance += winAmount;
+                }
+
+                resultsHTML += `<div class="result-item">
+                    <strong>${match.home.name} ${res.homeScore} : ${res.awayScore} ${match.away.name}</strong>
+                     | 下注 ${bet.amount} 资金 (${bet.betType} ${bet.betOption}) 赔率 ${bet.odds.toFixed(2)}
+                    → ${win ? '✅ 中奖 +' + winAmount : '❌ 未中'}
+                </div>`;
+            });
+        }
+
+        const area = document.getElementById('resultArea');
+        area.classList.remove('hidden');
+        document.getElementById('resultContent').innerHTML = resultsHTML;
+
+        state.bets = [];
+        advanceRound();
+
+        if (state.aliveTeams.length <= 1 || state.round >= state.maxRounds) {
+            endGame();
+            return;
+        }
+        state.round++;
+        generateRound();
+        updateUI();
+        document.getElementById('infoMsg').textContent = `第 ${state.round} 轮开始！`;
+    }
+
+    function advanceRound() {
+        const winners = [];
+        state.matches.forEach(match => {
+            if (!match.result) return;
+            const res = match.result;
+            if (res.winner === 'home') winners.push(match.home);
+            else if (res.winner === 'away') winners.push(match.away);
+            else winners.push(Math.random() < 0.5 ? match.home : match.away);
+        });
+        state.aliveTeams = winners;
+    }
+
+    function nextRound() {
+        if (state.gameOver) return;
+        // 如果本轮已全部结算且无投注，可直接生成下一轮
+        const allSettled = state.matches.every(m => m.settled);
+        if (allSettled && state.matches.length > 0) {
+            if (state.aliveTeams.length <= 1) { endGame(); return; }
+            state.round++;
+            if (state.round > state.maxRounds) { endGame(); return; }
+            generateRound();
+            updateUI();
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('infoMsg').textContent = `第 ${state.round} 轮开始！`;
+            return;
+        }
+
+        // 有未结算比赛 -> 确认结算
+        if (!confirm('确认进入下一轮？当前轮次所有未结算比赛将自动模拟并开奖！')) return;
+        settleRound();
+    }
+
+    function endGame() {
+        state.gameOver = true;
+        document.getElementById('gameOverArea').classList.remove('hidden');
+        document.getElementById('finalBalance').textContent = state.balance;
+        document.getElementById('infoMsg').textContent = '🏁 游戏结束！';
+        document.getElementById('roundTitle').textContent = '🏆 比赛结束';
+        document.getElementById('matchContainer').innerHTML = '';
+        document.getElementById('nextRoundBtn').disabled = true;
+        document.getElementById('workBtn').disabled = true;
+        updateLeaderboard();
+    }
+
+    // ============================================================
+    // 6. UI 渲染 & 赔率预览
+    // ============================================================
+    function updateOddsPreview() {
+        const match = getSelectedMatch();
+        const preview = document.getElementById('oddsPreview');
+        if (!match) { preview.textContent = '请选择比赛'; return; }
+        const betType = document.getElementById('betType').value;
+        let odds = 0;
+        if (betType === 'win') {
+            const option = document.getElementById('betOptionWin').value;
+            const o = computeOdds(match.home, match.away);
+            odds = (option === 'home') ? o.home : (option === 'draw' ? o.draw : o.away);
+        } else if (betType === 'score') {
+            const h = parseInt(document.getElementById('scoreHome').value) || 0;
+            const a = parseInt(document.getElementById('scoreAway').value) || 0;
+            odds = computeScoreOdds(match.home, match.away, h, a);
+        } else if (betType === 'total') {
+            const radios = document.querySelectorAll('input[name="total"]');
+            let over = true;
+            for (let r of radios) if (r.checked) over = (r.value === 'over');
+            const o = computeTotalOdds(match.home, match.away);
+            odds = over ? o.over : o.under;
+        }
+        preview.textContent = `赔率: ${odds.toFixed(2)}`;
+    }
+
+    function updateUI() {
+        document.getElementById('balanceDisplay').textContent = state.balance;
+        document.getElementById('roundDisplay').textContent = `${state.round} / ${state.maxRounds}`;
+        document.getElementById('survivorCount').textContent = state.aliveTeams.length;
+        document.getElementById('betCountDisplay').textContent = `${state.bets.length} / 4`;
+        document.getElementById('roundTitle').textContent = `🏟️ 第${state.round}轮 · ${state.aliveTeams.length}强`;
+
+        const container = document.getElementById('matchContainer');
+        container.innerHTML = '';
+
+        state.matches.forEach((match, idx) => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            const isSelected = (idx === state.selectedMatchIdx);
+            const isBetOn = isMatchBetOn(idx);
+            const isSettled = match.settled;
+
+            if (isSelected) card.classList.add('selected');
+            if (isBetOn && !isSettled) card.classList.add('betting');
+            if (isSettled) card.classList.add('settled');
+
+            // 队伍信息
+            const teamsDiv = document.createElement('div');
+            teamsDiv.className = 'match-teams';
+            teamsDiv.innerHTML = `
+                <span class="team-badge">
+                    <span class="home-away-tag">🏠主</span>
+                    <span class="team-flag">${match.home.flag}</span> ${match.home.name}
+                    <span class="team-strength">${match.home.overall}</span>
+                </span>
+                <span class="vs">vs</span>
+                <span class="team-badge">
+                    <span class="home-away-tag away">✈️客</span>
+                    <span class="team-flag">${match.away.flag}</span> ${match.away.name}
+                    <span class="team-strength">${match.away.overall}</span>
+                </span>
+                ${isSelected ? ' 🔍已选中' : ''}
+                ${isBetOn ? ' 📝已下注' : ''}
+                ${isSettled ? ' ⏳已结算' : ''}
+            `;
+            card.appendChild(teamsDiv);
+
+            // 详细数据
+            const detail = document.createElement('div');
+            detail.className = 'match-detail';
+            detail.innerHTML = `
+                <div class="stat"><span>⚔️ 进攻</span> <span>${match.home.attack} - ${match.away.attack}</span></div>
+                <div class="stat"><span>🛡️ 防守</span> <span>${match.home.defense} - ${match.away.defense}</span></div>
+                <div class="stat"><span>🧤 门将</span> <span>${match.home.keeper} - ${match.away.keeper}</span></div>
+                <div class="stat"><span>⭐ 档次</span> <span>${match.home.tier} - ${match.away.tier}</span></div>
+            `;
+            card.appendChild(detail);
+
+            // 赔率
+            const odds = computeOdds(match.home, match.away);
+            const oddsDiv = document.createElement('div');
+            oddsDiv.className = 'match-odds';
+            oddsDiv.innerHTML = `
+                <span>🏠主胜 ${odds.home.toFixed(2)}</span>
+                <span>🤝平局 ${odds.draw.toFixed(2)}</span>
+                <span>✈️客胜 ${odds.away.toFixed(2)}</span>
+            `;
+            card.appendChild(oddsDiv);
+
+            // 操作按钮（AI模拟）
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'match-actions';
+            const aiBtn = document.createElement('button');
+            aiBtn.className = 'ai-btn';
+            aiBtn.textContent = '🧠 AI模拟';
+            aiBtn.disabled = (isSettled || state.gameOver);
+            aiBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                useAI(idx);
+            });
+            actionsDiv.appendChild(aiBtn);
+            card.appendChild(actionsDiv);
+
+            // AI预测结果展示区域
+            const aiResultDiv = document.createElement('div');
+            aiResultDiv.className = 'ai-result';
+            if (match.aiResult) {
+                const p = match.aiResult;
+                aiResultDiv.innerHTML = `
+                    <strong>AI预测</strong><br>
+                    主胜 ${(p.homeWin*100).toFixed(1)}% | 平局 ${(p.draw*100).toFixed(1)}% | 客胜 ${(p.awayWin*100).toFixed(1)}%<br>
+                    大球 ${(p.over*100).toFixed(1)}% | 小球 ${(p.under*100).toFixed(1)}%<br>
+                    最可能比分: ${p.topScores.join(' | ')}
+                `;
+                aiResultDiv.classList.add('show');
+            }
+            card.appendChild(aiResultDiv);
+
+            // 如果已结算，显示结果
+            if (isSettled && match.result) {
+                const res = match.result;
+                const resDiv = document.createElement('div');
+                resDiv.className = 'bet-status';
+                resDiv.innerHTML = `🏁 比分 ${res.homeScore} : ${res.awayScore} (${res.winner === 'home' ? '主胜' : res.winner === 'away' ? '客胜' : '平局'})`;
+                card.appendChild(resDiv);
+            }
+
+            // 点击卡片选择
+            card.addEventListener('click', function(e) {
+                if (state.gameOver) return;
+                if (isSettled) { alert('该场比赛已结算'); return; }
+                state.selectedMatchIdx = idx;
+                updateUI();
+                updateOddsPreview();
+                document.getElementById('betStatus').textContent = `已选 ${match.home.name} vs ${match.away.name}`;
+            });
+
+            container.appendChild(card);
+        });
+
+        if (state.matches.length === 0 && !state.gameOver) {
+            container.innerHTML = '<div class="text-center text-sm" style="padding:20px;">暂无比赛</div>';
+        }
+
+        // 打工按钮状态
+        const workBtn = document.getElementById('workBtn');
+        if (state.gameOver || state.bets.length > 0) {
+            workBtn.disabled = true;
+        } else {
+            workBtn.disabled = false;
+        }
+
+        // 下一轮按钮
+        const nextBtn = document.getElementById('nextRoundBtn');
+        if (state.gameOver) {
+            nextBtn.disabled = true;
+        } else {
+            nextBtn.disabled = false;
+        }
+    }
+
+    // ============================================================
+    // 7. 排行榜 (localStorage)
+    // ============================================================
+    function getLeaderboard() {
+        const data = localStorage.getItem('footballGuessLeaderboard');
+        return data ? JSON.parse(data) : [];
+    }
+    function saveLeaderboard(entries) {
+        localStorage.setItem('footballGuessLeaderboard', JSON.stringify(entries));
+    }
+    function addScore(name, score) {
+        if (!name.trim()) name = '匿名玩家';
+        const board = getLeaderboard();
+        board.push({ name: name.trim(), score: score, date: new Date().toLocaleString() });
+        board.sort((a,b) => b.score - a.score);
+        if (board.length > 20) board.length = 20;
+        saveLeaderboard(board);
+        updateLeaderboard();
+    }
+    function updateLeaderboard() {
+        const list = document.getElementById('leaderboardList');
+        const board = getLeaderboard();
+        if (board.length === 0) {
+            list.innerHTML = '<li style="color:#94a3b8;justify-content:center;">暂无记录</li>';
+            return;
+        }
+        list.innerHTML = board.map((item, i) =>
+            `<li><span>${i+1}. ${item.name}</span> <span>${item.score} 资金</span></li>`
+        ).join('');
+    }
+
+    // ============================================================
+    // 8. 事件绑定与启动
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        initGame();
+        updateLeaderboard();
+
+        // 下注类型切换 -> 更新赔率
+        document.getElementById('betType').addEventListener('change', function() {
+            const type = this.value;
+            document.getElementById('winOptions').style.display = (type === 'win') ? 'inline' : 'none';
+            document.getElementById('scoreOptions').style.display = (type === 'score') ? 'inline' : 'none';
+            document.getElementById('totalOptions').style.display = (type === 'total') ? 'inline' : 'none';
+            updateOddsPreview();
+        });
+
+        document.getElementById('scoreHome').addEventListener('input', updateOddsPreview);
+        document.getElementById('scoreAway').addEventListener('input', updateOddsPreview);
+        document.querySelectorAll('input[name="total"]').forEach(el => {
+            el.addEventListener('change', updateOddsPreview);
+        });
+        document.getElementById('betOptionWin').addEventListener('change', updateOddsPreview);
+
+        document.getElementById('placeBetBtn').addEventListener('click', placeBet);
+        document.getElementById('nextRoundBtn').addEventListener('click', nextRound);
+        document.getElementById('workBtn').addEventListener('click', doWork);
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm('重新开始游戏？当前进度将丢失。')) {
+                initGame();
+                document.getElementById('gameOverArea').classList.add('hidden');
+                document.getElementById('resultArea').classList.add('hidden');
+                document.getElementById('nextRoundBtn').disabled = false;
+                document.getElementById('workBtn').disabled = false;
+                updateLeaderboard();
+            }
+        });
+
+        document.getElementById('saveScoreBtn').addEventListener('click', function() {
+            const name = document.getElementById('playerNameInput').value.trim() || '匿名';
+            addScore(name, state.balance);
+            alert('成绩已保存！');
+        });
+
+        document.getElementById('showLeaderboardBtn').addEventListener('click', function() {
+            updateLeaderboard();
+            document.getElementById('leaderboardArea').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        updateOddsPreview();
+    });
+</script>
+</body>
+</html>
