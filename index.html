@@ -309,7 +309,6 @@
     <div id="gameArea">
         <div class="round-title" id="roundTitle">🏟️ 第一轮 · 32强</div>
 
-        <!-- 全局下注面板 -->
         <div class="bet-panel" id="betPanel">
             <label>竞猜类型:
                 <select id="betType">
@@ -339,7 +338,6 @@
             <span class="text-sm" id="betStatus">请点击卡片选择比赛</span>
         </div>
 
-        <!-- 比赛卡片容器 -->
         <div id="matchContainer" class="match-grid"></div>
 
         <div class="flex-row mt-16">
@@ -377,9 +375,6 @@
 </div>
 
 <script>
-    // ============================================================
-    // 1. 球队数据
-    // ============================================================
     const TEAMS_DATA = [
         { name: '法国', flag: '🇫🇷', attack: 98, defense: 94, keeper: 95, overall: 96, tier: 'S' },
         { name: '阿根廷', flag: '🇦🇷', attack: 96, defense: 93, keeper: 97, overall: 95, tier: 'S' },
@@ -415,23 +410,17 @@
         { name: '约旦', flag: '🇯🇴', attack: 61, defense: 63, keeper: 62, overall: 62, tier: 'D' }
     ];
 
-    // ============================================================
-    // 2. 游戏状态
-    // ============================================================
     let state = {
-        balance: 1000,          // 资金
+        balance: 1000,
         round: 1,
         maxRounds: 5,
         aliveTeams: [],
-        matches: [],            // { home, away, result: null, settled: false, index }
-        bets: [],               // { matchIdx, betType, betOption, odds, amount }
+        matches: [],
+        bets: [],
         gameOver: false,
         selectedMatchIdx: -1,
     };
 
-    // ============================================================
-    // 3. 工具函数
-    // ============================================================
     function shuffle(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -516,19 +505,14 @@
         return { over: margin/overProb, under: margin/(1-overProb) };
     }
 
-    // ============================================================
-    // 4. AI 预测（返回概率对象）
-    // ============================================================
     function getAIPrediction(teamA, teamB) {
-        // 基于实力的胜平负概率（不含随机扰动）
         const diff = teamA.overall - teamB.overall;
         let homeWin = 0.5 + diff * 0.004;
         homeWin = Math.min(Math.max(homeWin, 0.05), 0.95);
-        let draw = 0.18 + Math.random() * 0.02; // 稳定一点
+        let draw = 0.18 + Math.random() * 0.02;
         let awayWin = 1 - homeWin - draw;
         if (awayWin < 0.02) { awayWin = 0.02; draw = 1 - homeWin - awayWin; }
 
-        // 期望进球
         let homeExpected = 1.2 + (teamA.attack/100 - teamB.defense/100) * 1.8;
         let awayExpected = 1.0 + (teamB.attack/100 - teamA.defense/100) * 1.8;
         homeExpected *= (1 - (teamB.keeper/100)*0.15);
@@ -536,11 +520,9 @@
         homeExpected = Math.max(homeExpected, 0.3);
         awayExpected = Math.max(awayExpected, 0.3);
 
-        // 比分概率（取最可能的几个）
         const mostLikely = [];
         for (let h = 0; h <= 4; h++) {
             for (let a = 0; a <= 4; a++) {
-                // 简化概率计算（泊松近似）
                 const prob = (Math.pow(homeExpected, h) * Math.exp(-homeExpected) / factorial(h)) *
                              (Math.pow(awayExpected, a) * Math.exp(-awayExpected) / factorial(a));
                 mostLikely.push({ h, a, prob });
@@ -549,7 +531,6 @@
         mostLikely.sort((x, y) => y.prob - x.prob);
         const topScores = mostLikely.slice(0, 3).map(s => `${s.h}:${s.a} (${(s.prob*100).toFixed(1)}%)`);
 
-        // 大小球概率
         let totalProb = 0;
         for (let h = 0; h <= 5; h++) {
             for (let a = 0; a <= 5; a++) {
@@ -577,9 +558,6 @@
         return r;
     }
 
-    // ============================================================
-    // 5. 核心逻辑
-    // ============================================================
     function initGame() {
         state.balance = 1000;
         state.round = 1;
@@ -607,7 +585,7 @@
                 away: teams[i+1],
                 result: null,
                 settled: false,
-                aiResult: null,   // 存储AI预测结果
+                aiResult: null,
             });
         }
         state.matches = matches;
@@ -673,24 +651,21 @@
         updateOddsPreview();
     }
 
-    // AI模拟
     function useAI(matchIdx) {
         if (state.gameOver) return;
         const match = state.matches[matchIdx];
         if (!match) return;
         if (match.settled) { alert('比赛已结束'); return; }
         if (state.balance < 200) { alert('资金不足200，无法使用AI模拟'); return; }
-        if (!confirm(`使用AI模拟预测本场比赛，消耗200资金，确认？`)) return;
+        if (!confirm('使用AI模拟预测本场比赛，消耗200资金，确认？')) return;
 
         state.balance -= 200;
-        // 计算预测
         const pred = getAIPrediction(match.home, match.away);
         match.aiResult = pred;
         updateUI();
-        document.getElementById('infoMsg').textContent = `AI模拟完成，查看卡片下方预测结果`;
+        document.getElementById('infoMsg').textContent = 'AI模拟完成，查看卡片下方预测结果';
     }
 
-    // 打工：跳过本轮，+100资金
     function doWork() {
         if (state.gameOver) return;
         if (state.bets.length > 0) {
@@ -698,7 +673,6 @@
             return;
         }
         if (!confirm('确认打工跳过本轮？你将获得100资金，本轮比赛将自动模拟晋级。')) return;
-        // 模拟所有比赛，晋级
         state.matches.forEach(m => {
             if (!m.settled) {
                 m.result = simulateMatch(m.home, m.away);
@@ -715,15 +689,13 @@
         generateRound();
         document.getElementById('resultArea').classList.add('hidden');
         updateUI();
-        document.getElementById('infoMsg').textContent = `打工成功，资金+100，进入第 ${state.round} 轮`;
+        document.getElementById('infoMsg').textContent = '打工成功，资金+100，进入第 ' + state.round + ' 轮';
     }
 
-    // 结算本轮所有比赛（进入下一轮时调用）
     function settleRound() {
         if (state.gameOver) return;
         if (state.matches.length === 0) return;
 
-        // 模拟所有未结算
         state.matches.forEach(m => {
             if (!m.settled) {
                 m.result = simulateMatch(m.home, m.away);
@@ -731,7 +703,6 @@
             }
         });
 
-        // 结算投注
         let resultsHTML = '';
         if (state.bets.length === 0) {
             resultsHTML = '<div>本轮无投注</div>';
@@ -762,11 +733,7 @@
                     state.balance += winAmount;
                 }
 
-                resultsHTML += `<div class="result-item">
-                    <strong>${match.home.name} ${res.homeScore} : ${res.awayScore} ${match.away.name}</strong>
-                     | 下注 ${bet.amount} 资金 (${bet.betType} ${bet.betOption}) 赔率 ${bet.odds.toFixed(2)}
-                    → ${win ? '✅ 中奖 +' + winAmount : '❌ 未中'}
-                </div>`;
+                resultsHTML += '<div class="result-item"><strong>' + match.home.name + ' ' + res.homeScore + ' : ' + res.awayScore + ' ' + match.away.name + '</strong> | 下注 ' + bet.amount + ' 资金 (' + bet.betType + ' ' + bet.betOption + ') 赔率 ' + bet.odds.toFixed(2) + ' → ' + (win ? '✅ 中奖 +' + winAmount : '❌ 未中') + '</div>';
             });
         }
 
@@ -784,7 +751,7 @@
         state.round++;
         generateRound();
         updateUI();
-        document.getElementById('infoMsg').textContent = `第 ${state.round} 轮开始！`;
+        document.getElementById('infoMsg').textContent = '第 ' + state.round + ' 轮开始！';
     }
 
     function advanceRound() {
@@ -801,7 +768,6 @@
 
     function nextRound() {
         if (state.gameOver) return;
-        // 如果本轮已全部结算且无投注，可直接生成下一轮
         const allSettled = state.matches.every(m => m.settled);
         if (allSettled && state.matches.length > 0) {
             if (state.aliveTeams.length <= 1) { endGame(); return; }
@@ -810,11 +776,10 @@
             generateRound();
             updateUI();
             document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('infoMsg').textContent = `第 ${state.round} 轮开始！`;
+            document.getElementById('infoMsg').textContent = '第 ' + state.round + ' 轮开始！';
             return;
         }
 
-        // 有未结算比赛 -> 确认结算
         if (!confirm('确认进入下一轮？当前轮次所有未结算比赛将自动模拟并开奖！')) return;
         settleRound();
     }
@@ -831,9 +796,6 @@
         updateLeaderboard();
     }
 
-    // ============================================================
-    // 6. UI 渲染 & 赔率预览
-    // ============================================================
     function updateOddsPreview() {
         const match = getSelectedMatch();
         const preview = document.getElementById('oddsPreview');
@@ -855,15 +817,15 @@
             const o = computeTotalOdds(match.home, match.away);
             odds = over ? o.over : o.under;
         }
-        preview.textContent = `赔率: ${odds.toFixed(2)}`;
+        preview.textContent = '赔率: ' + odds.toFixed(2);
     }
 
     function updateUI() {
         document.getElementById('balanceDisplay').textContent = state.balance;
-        document.getElementById('roundDisplay').textContent = `${state.round} / ${state.maxRounds}`;
+        document.getElementById('roundDisplay').textContent = state.round + ' / ' + state.maxRounds;
         document.getElementById('survivorCount').textContent = state.aliveTeams.length;
-        document.getElementById('betCountDisplay').textContent = `${state.bets.length} / 4`;
-        document.getElementById('roundTitle').textContent = `🏟️ 第${state.round}轮 · ${state.aliveTeams.length}强`;
+        document.getElementById('betCountDisplay').textContent = state.bets.length + ' / 4';
+        document.getElementById('roundTitle').textContent = '🏟️ 第' + state.round + '轮 · ' + state.aliveTeams.length + '强';
 
         const container = document.getElementById('matchContainer');
         container.innerHTML = '';
@@ -879,50 +841,22 @@
             if (isBetOn && !isSettled) card.classList.add('betting');
             if (isSettled) card.classList.add('settled');
 
-            // 队伍信息
             const teamsDiv = document.createElement('div');
             teamsDiv.className = 'match-teams';
-            teamsDiv.innerHTML = `
-                <span class="team-badge">
-                    <span class="home-away-tag">🏠主</span>
-                    <span class="team-flag">${match.home.flag}</span> ${match.home.name}
-                    <span class="team-strength">${match.home.overall}</span>
-                </span>
-                <span class="vs">vs</span>
-                <span class="team-badge">
-                    <span class="home-away-tag away">✈️客</span>
-                    <span class="team-flag">${match.away.flag}</span> ${match.away.name}
-                    <span class="team-strength">${match.away.overall}</span>
-                </span>
-                ${isSelected ? ' 🔍已选中' : ''}
-                ${isBetOn ? ' 📝已下注' : ''}
-                ${isSettled ? ' ⏳已结算' : ''}
-            `;
+            teamsDiv.innerHTML = '<span class="team-badge"><span class="home-away-tag">🏠主</span><span class="team-flag">' + match.home.flag + '</span> ' + match.home.name + ' <span class="team-strength">' + match.home.overall + '</span></span><span class="vs">vs</span><span class="team-badge"><span class="home-away-tag away">✈️客</span><span class="team-flag">' + match.away.flag + '</span> ' + match.away.name + ' <span class="team-strength">' + match.away.overall + '</span></span>' + (isSelected ? ' 🔍已选中' : '') + (isBetOn ? ' 📝已下注' : '') + (isSettled ? ' ⏳已结算' : '');
             card.appendChild(teamsDiv);
 
-            // 详细数据
             const detail = document.createElement('div');
             detail.className = 'match-detail';
-            detail.innerHTML = `
-                <div class="stat"><span>⚔️ 进攻</span> <span>${match.home.attack} - ${match.away.attack}</span></div>
-                <div class="stat"><span>🛡️ 防守</span> <span>${match.home.defense} - ${match.away.defense}</span></div>
-                <div class="stat"><span>🧤 门将</span> <span>${match.home.keeper} - ${match.away.keeper}</span></div>
-                <div class="stat"><span>⭐ 档次</span> <span>${match.home.tier} - ${match.away.tier}</span></div>
-            `;
+            detail.innerHTML = '<div class="stat"><span>⚔️ 进攻</span> <span>' + match.home.attack + ' - ' + match.away.attack + '</span></div><div class="stat"><span>🛡️ 防守</span> <span>' + match.home.defense + ' - ' + match.away.defense + '</span></div><div class="stat"><span>🧤 门将</span> <span>' + match.home.keeper + ' - ' + match.away.keeper + '</span></div><div class="stat"><span>⭐ 档次</span> <span>' + match.home.tier + ' - ' + match.away.tier + '</span></div>';
             card.appendChild(detail);
 
-            // 赔率
             const odds = computeOdds(match.home, match.away);
             const oddsDiv = document.createElement('div');
             oddsDiv.className = 'match-odds';
-            oddsDiv.innerHTML = `
-                <span>🏠主胜 ${odds.home.toFixed(2)}</span>
-                <span>🤝平局 ${odds.draw.toFixed(2)}</span>
-                <span>✈️客胜 ${odds.away.toFixed(2)}</span>
-            `;
+            oddsDiv.innerHTML = '<span>🏠主胜 ' + odds.home.toFixed(2) + '</span><span>🤝平局 ' + odds.draw.toFixed(2) + '</span><span>✈️客胜 ' + odds.away.toFixed(2) + '</span>';
             card.appendChild(oddsDiv);
 
-            // 操作按钮（AI模拟）
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'match-actions';
             const aiBtn = document.createElement('button');
@@ -936,38 +870,30 @@
             actionsDiv.appendChild(aiBtn);
             card.appendChild(actionsDiv);
 
-            // AI预测结果展示区域
             const aiResultDiv = document.createElement('div');
             aiResultDiv.className = 'ai-result';
             if (match.aiResult) {
                 const p = match.aiResult;
-                aiResultDiv.innerHTML = `
-                    <strong>AI预测</strong><br>
-                    主胜 ${(p.homeWin*100).toFixed(1)}% | 平局 ${(p.draw*100).toFixed(1)}% | 客胜 ${(p.awayWin*100).toFixed(1)}%<br>
-                    大球 ${(p.over*100).toFixed(1)}% | 小球 ${(p.under*100).toFixed(1)}%<br>
-                    最可能比分: ${p.topScores.join(' | ')}
-                `;
+                aiResultDiv.innerHTML = '<strong>AI预测</strong><br>主胜 ' + (p.homeWin*100).toFixed(1) + '% | 平局 ' + (p.draw*100).toFixed(1) + '% | 客胜 ' + (p.awayWin*100).toFixed(1) + '%<br>大球 ' + (p.over*100).toFixed(1) + '% | 小球 ' + (p.under*100).toFixed(1) + '%<br>最可能比分: ' + p.topScores.join(' | ');
                 aiResultDiv.classList.add('show');
             }
             card.appendChild(aiResultDiv);
 
-            // 如果已结算，显示结果
             if (isSettled && match.result) {
                 const res = match.result;
                 const resDiv = document.createElement('div');
                 resDiv.className = 'bet-status';
-                resDiv.innerHTML = `🏁 比分 ${res.homeScore} : ${res.awayScore} (${res.winner === 'home' ? '主胜' : res.winner === 'away' ? '客胜' : '平局'})`;
+                resDiv.innerHTML = '🏁 比分 ' + res.homeScore + ' : ' + res.awayScore + ' (' + (res.winner === 'home' ? '主胜' : res.winner === 'away' ? '客胜' : '平局') + ')';
                 card.appendChild(resDiv);
             }
 
-            // 点击卡片选择
             card.addEventListener('click', function(e) {
                 if (state.gameOver) return;
                 if (isSettled) { alert('该场比赛已结算'); return; }
                 state.selectedMatchIdx = idx;
                 updateUI();
                 updateOddsPreview();
-                document.getElementById('betStatus').textContent = `已选 ${match.home.name} vs ${match.away.name}`;
+                document.getElementById('betStatus').textContent = '已选 ' + match.home.name + ' vs ' + match.away.name;
             });
 
             container.appendChild(card);
@@ -977,7 +903,6 @@
             container.innerHTML = '<div class="text-center text-sm" style="padding:20px;">暂无比赛</div>';
         }
 
-        // 打工按钮状态
         const workBtn = document.getElementById('workBtn');
         if (state.gameOver || state.bets.length > 0) {
             workBtn.disabled = true;
@@ -985,7 +910,6 @@
             workBtn.disabled = false;
         }
 
-        // 下一轮按钮
         const nextBtn = document.getElementById('nextRoundBtn');
         if (state.gameOver) {
             nextBtn.disabled = true;
@@ -994,9 +918,6 @@
         }
     }
 
-    // ============================================================
-    // 7. 排行榜 (localStorage)
-    // ============================================================
     function getLeaderboard() {
         const data = localStorage.getItem('footballGuessLeaderboard');
         return data ? JSON.parse(data) : [];
@@ -1020,19 +941,13 @@
             list.innerHTML = '<li style="color:#94a3b8;justify-content:center;">暂无记录</li>';
             return;
         }
-        list.innerHTML = board.map((item, i) =>
-            `<li><span>${i+1}. ${item.name}</span> <span>${item.score} 资金</span></li>`
-        ).join('');
+        list.innerHTML = board.map((item, i) => '<li><span>' + (i+1) + '. ' + item.name + '</span> <span>' + item.score + ' 资金</span></li>').join('');
     }
 
-    // ============================================================
-    // 8. 事件绑定与启动
-    // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
         initGame();
         updateLeaderboard();
 
-        // 下注类型切换 -> 更新赔率
         document.getElementById('betType').addEventListener('change', function() {
             const type = this.value;
             document.getElementById('winOptions').style.display = (type === 'win') ? 'inline' : 'none';
